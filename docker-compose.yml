@@ -1,0 +1,42 @@
+version: '3.9'
+
+services:
+
+  db:
+    image: postgres:15
+    container_name: hospiplan_db
+    environment:
+      POSTGRES_DB: hospiplan
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: enfant*2
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: ./hospiplan
+    container_name: hospiplan_backend
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./hospiplan:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DJANGO_SETTINGS_MODULE=hospiplan.settings
+    depends_on:
+      - db
+
+  frontend:
+    build: ./frontend
+    container_name: hospiplan_frontend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

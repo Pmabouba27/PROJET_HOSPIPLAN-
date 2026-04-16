@@ -33,21 +33,35 @@ export default function Soignants() {
   }
 
   // ── Sauvegarder ────────────────────────────────────────────
-  async function sauvegarder() {
+ async function sauvegarder() {
     try {
-      if (form.id) {
-        await axios.put(`${API}${form.id}/`, form);
-        afficherAlerte('success', 'Soignant modifié !');
-      } else {
-        await axios.post(API, form);
-        afficherAlerte('success', 'Soignant ajouté !');
-      }
-      setModal(false);
-      charger();
+        if (form.id) {
+            await axios.patch(`${API}${form.id}/`, {
+                first_name : form.first_name,
+                last_name  : form.last_name,
+                email      : form.email,
+                phone      : form.phone,
+                is_active  : form.is_active,
+            });
+            afficherAlerte('success', 'Soignant modifié !');
+        } else {
+            await axios.post(API, {
+                first_name : form.first_name,
+                last_name  : form.last_name,
+                email      : form.email,
+                phone      : form.phone,
+                is_active  : form.is_active,
+                roles      : [1],
+                specialties: [1],
+            });
+            afficherAlerte('success', 'Soignant ajouté !');
+        }
+        setModal(false);
+        charger();
     } catch (err) {
-      afficherAlerte('error', 'Erreur : ' + JSON.stringify(err.response?.data));
+        afficherAlerte('error', 'Erreur : ' + JSON.stringify(err.response?.data));
     }
-  }
+}
 
   // ── Supprimer ──────────────────────────────────────────────
   async function supprimer(id) {

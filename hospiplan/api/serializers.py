@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import (
     Staff, Shift, ShiftAssignment, Absence,
-    CareUnit, ShiftType
+    CareUnit, ShiftType, Certification  # ← ajouter Certification ici
 )
 
 class StaffSerializer(serializers.ModelSerializer):
@@ -33,4 +33,8 @@ class ShiftTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model  = ShiftType
         fields = '__all__'
-        
+
+class CertificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = Certification
+        fields = '__all__'

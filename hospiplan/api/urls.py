@@ -9,6 +9,7 @@ router.register(r'absences',     views.AbsenceViewSet)
 router.register(r'assignments',  views.ShiftAssignmentViewSet)
 router.register(r'care_units',   views.CareUnitViewSet)
 router.register(r'shift_types',  views.ShiftTypeViewSet)
+router.register(r'certifications', views.CertificationViewSet)
 
 urlpatterns = [
     path('api/', include(router.urls)),

@@ -1,10 +1,10 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from django.utils import timezone
+from django.db import models
 from .models import *
 from .serializers import *
 
-# ── Pages HTML ────────────────────────────────────────────────
 class StaffViewSet(viewsets.ModelViewSet):
     queryset         = Staff.objects.all()
     serializer_class = StaffSerializer
@@ -25,7 +25,10 @@ class ShiftTypeViewSet(viewsets.ModelViewSet):
     queryset         = ShiftType.objects.all()
     serializer_class = ShiftTypeSerializer
 
-# ── Affectation avec contraintes dures ───────────────────────
+class CertificationViewSet(viewsets.ModelViewSet):
+    queryset         = Certification.objects.all()
+    serializer_class = CertificationSerializer
+
 class ShiftAssignmentViewSet(viewsets.ModelViewSet):
     queryset         = ShiftAssignment.objects.all()
     serializer_class = ShiftAssignmentSerializer
@@ -70,7 +73,7 @@ class ShiftAssignmentViewSet(viewsets.ModelViewSet):
         ).exclude(shift=shift).first()
         if chevauchement:
             return Response(
-                {'detail': f'❌ Ce soignant est déjà affecté à un poste qui chevauche ce créneau.'},
+                {'detail': '❌ Ce soignant est déjà affecté à un poste qui chevauche ce créneau.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -97,7 +100,7 @@ class ShiftAssignmentViewSet(viewsets.ModelViewSet):
             models.Q(end_date__gte=shift.start_datetime.date())
         ).first()
 
-        if contrat and shift.shift_type.requires_rest_after:
+        if contrat and shift.shift_type.is_night_shift:
             if not contrat.contract_type.night_shift_allowed:
                 return Response(
                     {'detail': '❌ Le contrat de ce soignant ne l\'autorise pas à faire des gardes de nuit.'},
@@ -123,7 +126,24 @@ class ShiftAssignmentViewSet(viewsets.ModelViewSet):
 
             if heures_semaine + duree_poste > contrat.contract_type.max_hours_per_week:
                 return Response(
-                    {'detail': f'❌ Quota hebdomadaire dépassé. Heures déjà planifiées : {heures_semaine}h / {contrat.contract_type.max_hours_per_week}h max.'},
+                    {'detail': f'❌ Quota hebdomadaire dépassé. Heures planifiées : {heures_semaine}h / {contrat.contract_type.max_hours_per_week}h max.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        # ── Contrainte 7 : Contraintes impératives ────────────
+        contraintes = Preference.objects.filter(
+            staff=staff,
+            is_hard_constraint=True,
+            start_date__lte=shift.start_datetime.date()
+        ).filter(
+            models.Q(end_date__isnull=True) |
+            models.Q(end_date__gte=shift.start_datetime.date())
+        )
+        for contrainte in contraintes:
+            jour_garde = shift.start_datetime.strftime('%A').lower()
+            if jour_garde in contrainte.description.lower():
+                return Response(
+                    {'detail': f'❌ Contrainte impérative : {contrainte.description}'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
@@ -132,3 +152,17 @@ class ShiftAssignmentViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def destroy(self, request, *args, **kwargs):
+        assignment  = self.get_object()
+        shift       = assignment.shift
+        nb_affectes = ShiftAssignment.objects.filter(shift=shift).count()
+
+        if nb_affectes <= shift.min_staff:
+            return Response(
+                {'detail': f'❌ Impossible de supprimer — effectif minimum requis : {shift.min_staff} soignant(s).'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        assignment.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
