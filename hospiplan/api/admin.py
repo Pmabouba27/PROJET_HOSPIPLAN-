@@ -9,7 +9,8 @@ from .models import (
     Preference,
     PatientLoad,
     StaffLoan,
-    Rule
+    Rule,
+    SoftConstraintWeight,
 )
 
 admin.site.register(Staff)
@@ -32,3 +33,4 @@ admin.site.register(Preference)
 admin.site.register(PatientLoad)
 admin.site.register(StaffLoan)
 admin.site.register(Rule)
+admin.site.register(SoftConstraintWeight)

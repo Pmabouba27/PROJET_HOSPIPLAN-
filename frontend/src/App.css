@@ -197,3 +197,200 @@ tr:last-child td { border-bottom: none; }
   padding: 2rem;
   color: #6b7280;
 }
+
+/* ── Navbar - sous-titre et sections ── */
+.logo-sub {
+  color: #6b7280;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin: -1.5rem 0 2rem 0.5rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.nav-section {
+  list-style: none;
+  color: #4b5563;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 1rem 1rem 0.4rem 1rem;
+}
+
+/* ── Page d'accueil ── */
+.home { display: flex; flex-direction: column; gap: 2rem; }
+
+.hero {
+  background: linear-gradient(135deg, #1e3a8a 0%, #4d9fff 100%);
+  border-radius: 16px;
+  padding: 2.5rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 2rem;
+  color: white;
+  box-shadow: 0 10px 30px rgba(77, 159, 255, 0.15);
+}
+.hero-left { flex: 1; }
+.hero-badge {
+  display: inline-block;
+  background: rgba(255,255,255,0.15);
+  padding: 0.35rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+.hero h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.15;
+  margin-bottom: 0.8rem;
+}
+.hero-sub {
+  font-size: 1rem;
+  color: rgba(255,255,255,0.85);
+  max-width: 560px;
+  margin-bottom: 1.2rem;
+}
+.hero-date {
+  font-size: 0.9rem;
+  color: rgba(255,255,255,0.7);
+  text-transform: capitalize;
+}
+.hero-right { display: flex; align-items: center; }
+.hero-card {
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 12px;
+  padding: 1.4rem;
+  max-width: 280px;
+  backdrop-filter: blur(10px);
+}
+.hero-card-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.85);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 0.6rem;
+}
+.hero-card-text {
+  font-size: 0.92rem;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+  color: white;
+}
+.hero-card .btn { width: 100%; display: block; text-align: center; text-decoration: none; }
+
+/* ── Chiffres clés ── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+.stat-card {
+  background: #1a1d27;
+  border: 1px solid #2a2d3e;
+  border-radius: 12px;
+  padding: 1.2rem 1.3rem;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.stat-card:hover { border-color: #4d9fff; transform: translateY(-2px); }
+.stat-icon {
+  font-size: 1.6rem;
+  margin-bottom: 0.4rem;
+}
+.stat-value {
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: white;
+}
+.stat-label {
+  font-size: 0.78rem;
+  color: #9ca3af;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 0.3rem;
+}
+.stat-hint {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.15rem;
+}
+
+/* ── Section titre ── */
+.section-title {
+  font-size: 1.1rem;
+  color: white;
+  font-weight: 700;
+  margin-top: 0.5rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid #2a2d3e;
+}
+
+/* ── Tuiles d'actions ── */
+.actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+.action-tile {
+  position: relative;
+  background: #1a1d27;
+  border: 1px solid #2a2d3e;
+  border-radius: 12px;
+  padding: 1.4rem;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-height: 140px;
+}
+.action-tile:hover {
+  border-color: #4d9fff;
+  background: #1f2235;
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+}
+.action-icon { font-size: 1.8rem; }
+.action-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: white;
+}
+.action-desc {
+  font-size: 0.85rem;
+  color: #9ca3af;
+  line-height: 1.4;
+  flex: 1;
+}
+.action-arrow {
+  position: absolute;
+  bottom: 1rem; right: 1.2rem;
+  color: #4d9fff;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+.action-highlight {
+  background: linear-gradient(135deg, #1e3a8a22 0%, #4d9fff22 100%);
+  border-color: #4d9fff66;
+}
+.action-highlight .action-title { color: #4d9fff; }
+
+/* ── Footer ── */
+.home-footer {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #2a2d3e;
+  font-size: 0.8rem;
+  color: #6b7280;
+  text-align: center;
+}
+.home-footer-sub {
+  font-size: 0.75rem;
+  margin-top: 0.3rem;
+  color: #4b5563;
+}

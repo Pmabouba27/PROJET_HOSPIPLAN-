@@ -60,6 +60,8 @@ class ContractType(models.Model):
     max_hours_per_week = models.IntegerField()
     leave_days_per_year = models.IntegerField()
     night_shift_allowed = models.BooleanField(default=True) # Ajouté pour RULE_CONTRACT_ELIG
+    # Phase 3 - molle M1 : limite de nuits consécutives (configurable par contrat)
+    max_consecutive_nights = models.IntegerField(default=3)
 
     def __str__(self):
         return self.name
@@ -94,6 +96,8 @@ class Service(models.Model):
     manager = models.ForeignKey(Staff, on_delete=models.SET_NULL, null=True, blank=True, related_name='managed_services')
     bed_capacity = models.IntegerField()
     criticality_level = models.IntegerField()
+    # Phase 3 - molle M7 : active la pénalité de continuité de soins pour ce service
+    requires_care_continuity = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name
@@ -223,12 +227,36 @@ class Absence(models.Model):
         return f"Absence {self.staff} ({self.start_date})"
 
 class Preference(models.Model):
+    """
+    Préférences F-07.
+    Phase 3 : champs enrichis pour pouvoir évaluer la pénalité M2 de manière structurée
+    tout en gardant 100 % de compatibilité avec les préférences Phase 2 (description libre).
+    """
+    PREF_KIND_CHOICES = [
+        ('wants_shift_type',  'Veut ce type de garde'),
+        ('avoids_shift_type', 'Veut éviter ce type de garde'),
+        ('wants_day',         'Veut ce jour de la semaine'),
+        ('avoids_day',        'Veut éviter ce jour de la semaine'),
+        ('wants_service',     'Veut ce service'),
+        ('avoids_service',    'Veut éviter ce service'),
+        ('free_text',         'Contrainte texte libre (Phase 2)'),
+    ]
+
     staff = models.ForeignKey(Staff, on_delete=models.CASCADE, related_name='preferences')
     type = models.CharField(max_length=100)
     description = models.TextField(null=True, blank=True)
     is_hard_constraint = models.BooleanField(default=False)
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
+
+    # Phase 3 - typage structuré pour M2
+    kind = models.CharField(max_length=32, choices=PREF_KIND_CHOICES, default='free_text')
+    importance = models.IntegerField(default=1)  # 1 = faible … 5 = critique
+    target_shift_type = models.ForeignKey(ShiftType, on_delete=models.SET_NULL,
+                                          null=True, blank=True, related_name='preferences')
+    target_service = models.ForeignKey(Service, on_delete=models.SET_NULL,
+                                       null=True, blank=True, related_name='preferences')
+    target_day_of_week = models.IntegerField(null=True, blank=True)  # 0=lundi … 6=dimanche
 
 class PatientLoad(models.Model):
     care_unit = models.ForeignKey(CareUnit, on_delete=models.CASCADE, related_name='patient_loads')
@@ -243,3 +271,33 @@ class StaffLoan(models.Model):
     start_date = models.DateField()
     end_date = models.DateField()
 
+
+class SoftConstraintWeight(models.Model):
+    """
+    Phase 3 - poids des contraintes molles M1 … M7 et paramètres associés (ex. période
+    d'adaptation). Éditable depuis l'admin Django pour réglage sans redéploiement.
+
+    Codes documentés :
+      M1 : nuits consécutives       (default 5.0)
+      M2 : préférences F-07         (default 1.0, multiplié par importance)
+      M3 : équilibrage charge       (default 3.0, σ par (role, service))
+      M4 : changements de service   (default 2.0 par service distinct > 1)
+      M5 : gardes week-end          (default 4.0, σ sur trimestre)
+      M6 : adaptation nouveau svc   (default 2.5)
+      M7 : continuité de soins      (default 3.0 par rupture)
+      ADAPTATION_DAYS : jours considérés comme période d'adaptation (default 14)
+    """
+    code = models.CharField(max_length=32, unique=True)
+    weight = models.FloatField()
+    description = models.CharField(max_length=255, blank=True)
+
+    def __str__(self):
+        return f"{self.code} = {self.weight}"
+
+    @classmethod
+    def get_weight(cls, code, default):
+        """Lecture tolérante : renvoie la valeur par défaut si le poids n'est pas en base."""
+        try:
+            return cls.objects.get(code=code).weight
+        except cls.DoesNotExist:
+            return default

@@ -1,9 +1,15 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.decorators import api_view
 from django.utils import timezone
-from django.db import models
+from django.db import models, transaction
+from django.core.exceptions import ValidationError
+from datetime import datetime
 from .models import *
 from .serializers import *
+from .planning.generator import generate_daily_planning
+from .planning.metaheuristic import tabu_search
 
 class StaffViewSet(viewsets.ModelViewSet):
     queryset         = Staff.objects.all()
@@ -28,6 +34,18 @@ class ShiftTypeViewSet(viewsets.ModelViewSet):
 class CertificationViewSet(viewsets.ModelViewSet):
     queryset         = Certification.objects.all()
     serializer_class = CertificationSerializer
+
+class AbsenceTypeViewSet(viewsets.ModelViewSet):
+    queryset         = AbsenceType.objects.all()
+    serializer_class = AbsenceTypeSerializer
+
+class PreferenceViewSet(viewsets.ModelViewSet):
+    queryset         = Preference.objects.all()
+    serializer_class = PreferenceSerializer
+
+class ServiceViewSet(viewsets.ModelViewSet):
+    queryset         = Service.objects.all()
+    serializer_class = ServiceSerializer
 
 class ShiftAssignmentViewSet(viewsets.ModelViewSet):
     queryset         = ShiftAssignment.objects.all()
@@ -166,3 +184,105 @@ class ShiftAssignmentViewSet(viewsets.ModelViewSet):
 
         assignment.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# Phase 3 — génération automatique de planning
+# ─────────────────────────────────────────────────────────────────────────
+
+class GeneratePlanningView(APIView):
+    """
+    POST /api/plannings/generate/
+    Body JSON :
+      {
+        "date":       "YYYY-MM-DD",   # jour à planifier
+        "service_id": 3,               # optionnel : limite à un service
+        "metaheuristic": true,         # optionnel : active la recherche tabou
+        "persist":    true             # optionnel : sauvegarde en BD (défaut true)
+      }
+
+    Réponse :
+      {
+        "assignments":  [{shift, staff, legal}, ...],
+        "uncovered":    [{shift, missing, reason}, ...],
+        "score":        { total, details{M1..M7}, weights },
+        "summary":      { shifts_total, covered, uncovered, staff_used },
+        "persisted":    n   # nombre d'affectations réellement écrites
+      }
+    """
+
+    def post(self, request, *args, **kwargs):
+        raw_date = request.data.get('date')
+        service_id = request.data.get('service_id')
+        use_meta = bool(request.data.get('metaheuristic', True))
+        persist = bool(request.data.get('persist', True))
+
+        if not raw_date:
+            return Response({'detail': 'Champ "date" requis (YYYY-MM-DD).'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        try:
+            target = datetime.strptime(raw_date, '%Y-%m-%d').date()
+        except ValueError:
+            return Response({'detail': 'Date invalide, format attendu YYYY-MM-DD.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        # 1. Heuristique gloutonne
+        result = generate_daily_planning(target, service_id=service_id)
+
+        # 2. Métaheuristique optionnelle (toujours sous contrôle des dures)
+        meta_info = None
+        if use_meta and result['assignments']:
+            meta_info = tabu_search(
+                result['_ctx'], result['_aux'], result['_weights'],
+                max_iter=200, tabu_len=25, time_limit_s=6.0,
+            )
+            # Recalcule les affectations finales depuis ctx
+            final = []
+            for staff_id, lst in result['_ctx'].assignments_by_staff.items():
+                for (_, _, shift_id, _) in lst:
+                    if shift_id in result['_ctx'].shifts:
+                        # Ne garde que ce qui est dans la fenêtre
+                        final.append({'shift': shift_id, 'staff': staff_id, 'legal': True})
+            # Filtre pour ne garder que les affectations « nouvelles » (celles
+            # pas déjà présentes en base avant la génération).
+            from api.models import ShiftAssignment as _SA
+            existing_keys = set(
+                _SA.objects.filter(shift_id__in=list(result['_ctx'].shifts.keys()))
+                .values_list('staff_id', 'shift_id')
+            )
+            result['assignments'] = [
+                a for a in final if (a['staff'], a['shift']) not in existing_keys
+            ]
+            # Recalcul du score final
+            from .planning.scoring import total_score
+            result['score'] = total_score(
+                result['_ctx'], result['_aux'], result['_weights']
+            )
+
+        # 3. Persistance : on passe par save() => full_clean() => dures revérifiées
+        persisted = 0
+        errors = []
+        if persist:
+            with transaction.atomic():
+                for a in result['assignments']:
+                    try:
+                        sa = ShiftAssignment(staff_id=a['staff'], shift_id=a['shift'])
+                        sa.save()
+                        persisted += 1
+                    except ValidationError as ve:
+                        # Filet de sécurité : si la BD refuse (concurrent change etc.),
+                        # on n'enregistre pas mais on ne plante pas la réponse.
+                        errors.append({'shift': a['shift'], 'staff': a['staff'],
+                                       'detail': str(ve)})
+
+        return Response({
+            'date': raw_date,
+            'service_id': service_id,
+            'assignments': result['assignments'],
+            'uncovered': result['uncovered'],
+            'score': result['score'],
+            'summary': result['summary'],
+            'metaheuristic': meta_info,
+            'persisted': persisted,
+            'errors': errors,
+        }, status=status.HTTP_200_OK)
