@@ -63,7 +63,7 @@ export default function Home() {
       <div className="hero">
         <div className="hero-left">
           <div className="hero-badge">🏥 Établissement</div>
-          <h1>Centre Hospitalier Universitaire Saint-Antoine</h1>
+          <h1>Centre Hospitalier Universitaire AL HAMAL </h1>
           <p className="hero-sub">
             Plateforme de gestion du personnel soignant et de planification intelligente des gardes
           </p>
@@ -121,10 +121,9 @@ export default function Home() {
       </div>
 
       <footer className="home-footer">
-        <div>© 2026 CHU Saint-Antoine · Hospiplan v3.0</div>
+        <div>© 2026 AL HAMAL · Hospiplan v3.0</div>
         <div className="home-footer-sub">
-          Génération heuristique <b>least-loaded</b> + métaheuristique <b>recherche tabou</b>,
-          sous contrôle des 7 règles dures.
+         Copyright 
         </div>
       </footer>
     </div>

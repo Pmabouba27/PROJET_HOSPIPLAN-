@@ -11,15 +11,17 @@ Crée :
   - Types de contrat (CDI plein, CDI temps partiel, CDD, Interim)
   - Types de shift (jour, nuit, week-end)
   - 5 services + 5 care_units + patient_loads
-  - 2 certifications (Réa, Pédiatrie)
-  - 15 soignants complets avec :
+  - 3 certifications (Réa, Pédiatrie, Urgences)
+  - 20 soignants complets avec :
       * rôles + spécialités
-      * contrats (avec max_consecutive_nights)
-      * certifications
+      * contrats variés (avec max_consecutive_nights)
+      * certifications (réa, pédiatrie, urgences)
       * staff_service_assignments (historique)
-      * absences variées
-      * préférences structurées (M2)
-  - Shifts pour les 7 prochains jours, min_staff/max_staff réalistes
+      * absences variées (7 soignants absents)
+      * préférences structurées (M2) pour 15 soignants
+      * 1 soignant intérimaire (sans droit nuit) pour tester RULE_CONTRACT_ELIG
+      * 1 soignant avec certification expirée pour tester RULE_CERTIF_EXP
+  - Shifts pour les 14 prochains jours (fenêtre élargie pour les tests)
   - Quelques affectations de départ (historique)
   - Poids par défaut des contraintes molles (SoftConstraintWeight)
 """
@@ -41,14 +43,16 @@ from api.models import (
 
 
 PRENOMS = [
-    'Amina', 'Bastien', 'Chloé', 'Diallo', 'Élise',
-    'Fatou', 'Gabriel', 'Hana', 'Inès', 'Julien',
-    'Khadija', 'Lucas', 'Marion', 'Nora', 'Omar',
+    'Amina',   'Bastien', 'Chloé',   'Diallo',  'Élise',
+    'Fatou',   'Gabriel', 'Hana',    'Inès',    'Julien',
+    'Khadija', 'Lucas',   'Marion',  'Nora',    'Omar',
+    'Priya',   'Quentin', 'Rania',   'Sébastien','Tania',
 ]
 NOMS = [
-    'Traoré', 'Martin', 'Lefebvre', 'Dupont', 'Moreau',
-    'Diop', 'Bernard', 'Nguyen', 'Richard', 'Petit',
-    'Barry', 'Rousseau', 'Bouchard', 'Okonkwo', 'Garcia',
+    'Traoré',   'Martin',   'Lefebvre', 'Dupont',    'Moreau',
+    'Diop',     'Bernard',  'Nguyen',   'Richard',   'Petit',
+    'Barry',    'Rousseau', 'Bouchard', 'Okonkwo',   'Garcia',
+    'Sharma',   'Lemaire',  'Benali',   'Fontaine',  'Millet',
 ]
 
 
@@ -123,6 +127,7 @@ class Command(BaseCommand):
 
         cert_rea = Certification.objects.get_or_create(name='Réanimation niveau 2')[0]
         cert_ped = Certification.objects.get_or_create(name='Pédiatrie avancée')[0]
+        cert_urg = Certification.objects.get_or_create(name='Urgences vitales')[0]
 
         abs_types = {n: AbsenceType.objects.get_or_create(
                         name=n, defaults={'impacts_quota': True})[0]
@@ -155,61 +160,117 @@ class Command(BaseCommand):
                     defaults={'patient_count': random.randint(5, cap),
                               'occupancy_rate': random.uniform(0.4, 0.95)})
 
-        self.stdout.write('Création des 15 soignants…')
+        self.stdout.write('Création des 20 soignants…')
         staff_list = []
         for i, (first, last) in enumerate(zip(PRENOMS, NOMS)):
-            email = f'{first.lower()}.{last.lower()}@chu-stantoine.fr'
-            s, created = Staff.objects.get_or_create(
+            phone_digits = str(i).zfill(2)
+            email = f'{first.lower()}.{last.lower()}@chu-alaamal.fr'
+            s, _ = Staff.objects.get_or_create(
                 email=email,
                 defaults={'first_name': first, 'last_name': last,
-                          'phone': f'06 0{i} 0{i} 0{i} 0{i}',
+                          'phone': f'06 {phone_digits} {phone_digits} {phone_digits} {phone_digits}',
                           'is_active': True})
-            # roles + specialities
-            role_name = random.choice(['IDE', 'IDE', 'IDE', 'Aide-soignant', 'Médecin'])
+
+            # Rôles : 60 % IDE, 20 % Aide-soignant, 15 % Médecin, 5 % Cadre
+            role_name = random.choices(
+                ['IDE', 'Aide-soignant', 'Médecin', 'Cadre'],
+                weights=[60, 20, 15, 5])[0]
             s.roles.add(roles[role_name])
             s.specialties.add(random.choice(list(specs.values())))
             staff_list.append(s)
 
-            # Contrat
-            ct = random.choice(contract_types)
+            # Contrat — le 16e soignant (Priya Sharma) est intérimaire
+            # pour permettre de tester RULE_CONTRACT_ELIG (pas de nuit)
+            if i == 15:
+                ct = ct_inter
+            else:
+                ct = random.choices(contract_types[:3], weights=[50, 30, 20])[0]
+
             Contract.objects.get_or_create(
                 staff=s, start_date=date(2023, 1, 1),
-                defaults={'contract_type': ct, 'workload_percent': 100 if ct == ct_cdi else 70})
+                defaults={
+                    'contract_type': ct,
+                    'workload_percent': 100 if ct == ct_cdi else 70,
+                    'end_date': date(2025, 12, 31) if ct in (ct_cdd, ct_inter) else None,
+                })
 
-            # Certifications (50 % ont la certif réa, 30 % la certif pédiatrie)
+            # Certifications
+            # - 50 % ont la certif réa valide
             if random.random() < 0.5:
                 StaffCertification.objects.get_or_create(
                     staff=s, certification=cert_rea,
                     defaults={'obtained_date': date(2022, 6, 1),
                               'expiration_date': date(2028, 6, 1)})
-            if random.random() < 0.3:
+            # - 35 % ont la certif pédiatrie valide
+            if random.random() < 0.35:
                 StaffCertification.objects.get_or_create(
                     staff=s, certification=cert_ped,
                     defaults={'obtained_date': date(2023, 3, 1),
                               'expiration_date': date(2027, 3, 1)})
+            # - 40 % ont la certif urgences valide
+            if random.random() < 0.4:
+                StaffCertification.objects.get_or_create(
+                    staff=s, certification=cert_urg,
+                    defaults={'obtained_date': date(2021, 9, 1),
+                              'expiration_date': date(2026, 9, 1)})
 
-            # Historique de service (pour M6)
+            # Le 17e soignant (Quentin Lemaire) a une certification EXPIRÉE
+            # pour tester RULE_CERTIF_EXP
+            if i == 16:
+                StaffCertification.objects.get_or_create(
+                    staff=s, certification=cert_rea,
+                    defaults={'obtained_date': date(2018, 1, 1),
+                              'expiration_date': date(2020, 1, 1)})  # expirée !
+
+            # Historique de service (pour M6 — période d'adaptation)
             svc = random.choice(list(services.values()))
             StaffServiceAssignment.objects.get_or_create(
                 staff=s, service=svc,
                 defaults={'start_date': date(2023, 2, 1),
                           'end_date': date(2024, 1, 1)})
 
-        self.stdout.write('Création des absences…')
+        self.stdout.write('Création des absences (7 soignants)…')
         today = date.today()
-        for s in random.sample(staff_list, 5):
+
+        # Absences aléatoires pour 5 soignants
+        for s in random.sample(staff_list[:15], 5):
+            # Éviter les doublons
+            if not Absence.objects.filter(staff=s).exists():
+                Absence.objects.create(
+                    staff=s,
+                    absence_type=random.choice(list(abs_types.values())),
+                    start_date=today + timedelta(days=random.randint(-2, 3)),
+                    expected_end_date=today + timedelta(days=random.randint(5, 14)),
+                    is_planned=random.choice([True, False]),
+                )
+
+        # Absence déterministe pour tester RULE_ABSENCE_PRIO :
+        # le 18e soignant (Rania Benali) est absent toute la semaine
+        s_absent = staff_list[17] if len(staff_list) > 17 else staff_list[-1]
+        if not Absence.objects.filter(staff=s_absent).exists():
             Absence.objects.create(
-                staff=s,
-                absence_type=random.choice(list(abs_types.values())),
-                start_date=today + timedelta(days=random.randint(-3, 4)),
-                expected_end_date=today + timedelta(days=random.randint(5, 12)),
-                is_planned=random.choice([True, False]),
+                staff=s_absent,
+                absence_type=abs_types['Arrêt maladie'],
+                start_date=today - timedelta(days=1),
+                expected_end_date=today + timedelta(days=10),
+                is_planned=False,
             )
 
-        self.stdout.write('Création des préférences structurées…')
+        # Absence longue (congé maternité) pour un autre soignant
+        s_mat = staff_list[19] if len(staff_list) > 19 else staff_list[-2]
+        if not Absence.objects.filter(staff=s_mat).exists():
+            Absence.objects.create(
+                staff=s_mat,
+                absence_type=abs_types['Congé maternité'],
+                start_date=today - timedelta(days=30),
+                expected_end_date=today + timedelta(days=60),
+                is_planned=True,
+            )
+
+        self.stdout.write('Création des préférences structurées (15 soignants)…')
         kinds = ['wants_shift_type', 'avoids_shift_type', 'wants_day',
                  'avoids_day', 'wants_service', 'avoids_service']
-        for s in random.sample(staff_list, 12):
+        for s in random.sample(staff_list, 15):
             k = random.choice(kinds)
             p = Preference(staff=s, type='user_preference',
                            kind=k, importance=random.randint(1, 5),
@@ -223,9 +284,24 @@ class Command(BaseCommand):
                 p.target_day_of_week = random.randint(0, 6)
             p.save()
 
-        self.stdout.write('Création des shifts sur 7 jours…')
+        # Contrainte IMPÉRATIVE pour tester RULE_HARD_PREF :
+        # le 19e soignant (Sébastien Fontaine) refuse le vendredi
+        s_hard = staff_list[18] if len(staff_list) > 18 else staff_list[-3]
+        Preference.objects.get_or_create(
+            staff=s_hard,
+            type='hard_constraint',
+            defaults={
+                'kind': 'avoids_day',
+                'importance': 5,
+                'is_hard_constraint': True,
+                'target_day_of_week': 4,   # 4 = vendredi
+                'description': 'Ne peut pas travailler le vendredi (contrainte de transport)',
+            }
+        )
+
+        self.stdout.write('Création des shifts sur 14 jours…')
         shifts_created = 0
-        for day_offset in range(7):
+        for day_offset in range(14):
             d = today + timedelta(days=day_offset)
             for cu in care_units.values():
                 # Shift jour
@@ -265,10 +341,17 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(
             f"\n✔ Seed terminé :"
-            f"\n    Soignants : {Staff.objects.count()}"
-            f"\n    Services  : {Service.objects.count()}"
-            f"\n    Shifts    : {Shift.objects.count()} ({shifts_created} nouveaux)"
-            f"\n    Absences  : {Absence.objects.count()}"
-            f"\n    Préfs     : {Preference.objects.count()}"
-            f"\n    Poids M   : {SoftConstraintWeight.objects.count()}"
+            f"\n    Soignants      : {Staff.objects.count()}"
+            f"\n    Services       : {Service.objects.count()}"
+            f"\n    Shifts         : {Shift.objects.count()} ({shifts_created} nouveaux)"
+            f"\n    Absences       : {Absence.objects.count()}"
+            f"\n    Préférences    : {Preference.objects.count()}"
+            f"\n    Poids M        : {SoftConstraintWeight.objects.count()}"
+            f"\n"
+            f"\n  Soignants spéciaux pour les tests :"
+            f"\n    Intérimaire (pas de nuit) : Priya Sharma (index 15)"
+            f"\n    Certif expirée            : Quentin Lemaire (index 16)"
+            f"\n    Absent (arrêt maladie)    : Rania Benali (index 17)"
+            f"\n    Contrainte impérative     : Sébastien Fontaine (vendredi, index 18)"
+            f"\n    Congé maternité           : Tania Millet (index 19)"
         ))

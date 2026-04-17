@@ -19,4 +19,12 @@ urlpatterns = [
     # Phase 3 — génération automatique de planning
     path('api/plannings/generate/', views.GeneratePlanningView.as_view(),
          name='generate-planning'),
+    # Phase 3 — tableau de bord statistiques
+    path('api/stats/', views.StatsView.as_view(),
+         name='stats'),
+    # Fiche soignant complète (absences + préférences + certifications)
+    path('api/staff/overview/', views.StaffListWithStatusView.as_view(),
+         name='staff-overview'),
+    path('api/staff/<int:pk>/profile/', views.StaffProfileView.as_view(),
+         name='staff-profile'),
 ]
