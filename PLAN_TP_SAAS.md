@@ -129,9 +129,11 @@ Utilisateur ─HTTPS→ Frontend React ─JWT→ service-planning ─REST→ ser
 ## 5. Répartition du travail
 
 ### Phase 0 — ensemble (½ journée)
-- [ ] Valider le découpage (section 3).
-- [ ] **Figer les contrats** : endpoints REST de chaque service (OpenAPI ou tableau), format JSON du message `planning.generated`, contenu du JWT (`etablissement_id`, `role`).
-- [ ] Conventions Git : `main` protégée, une branche par tâche, **chaque PR relue par l'autre**.
+- [x] Valider le découpage (section 3) → propriété de chaque modèle : `docs/contrats/CONTRATS.md` §1.
+- [x] **Figer les contrats** : endpoints REST de chaque service (OpenAPI ou tableau), format JSON du message `planning.generated`, contenu du JWT (`etablissement_id`, `role`) → `docs/contrats/CONTRATS.md` + exemples JSON dans `docs/contrats/exemples/`.
+- [x] Conventions Git : une branche par tâche, **chaque PR relue par l'autre** → `CONTRIBUTING.md`, `.github/pull_request_template.md`, `.gitignore`.
+- [ ] Activer la protection de `main` sur GitHub (Settings → Branches → règle `main` : PR obligatoire, 1 approbation) — à faire par le propriétaire du dépôt.
+- [ ] Relecture et approbation de `CONTRATS.md` par A **et** B.
 
 Une fois les contrats figés, chacun avance en parallèle (en local via `docker-compose` en attendant la VM).
 

@@ -1,0 +1,24 @@
+{
+  "event_id": "a3e1b6f0-3c5d-4e7a-9f21-0d4c8b7e6a55",
+  "event_type": "planning.generated",
+  "version": 1,
+  "occurred_at": "2026-11-12T10:03:12Z",
+  "source": "service-planning",
+  "correlation_id": "6f1c2e4a-0b7d-4a51-9a7e-3c1f0d2b9e11",
+  "etablissement_id": 3,
+  "triggered_by": {"user_id": 42, "role": "CADRE"},
+  "data": {
+    "planning_id": "a3e1b6f0-3c5d-4e7a-9f21-0d4c8b7e6a55",
+    "date": "2026-11-16",
+    "service_id": 1,
+    "service_name": "Cardiologie",
+    "summary": {"shifts_total": 12, "covered": 11, "uncovered": 1, "staff_used": 9},
+    "score_total": 12.5,
+    "assignments": [
+      {"shift_id": 340, "staff_id": 17, "start": "2026-11-16T07:00:00+01:00", "end": "2026-11-16T19:00:00+01:00", "shift_type": "Jour", "care_unit": "USIC"}
+    ],
+    "uncovered": [
+      {"shift_id": 341, "missing": 1, "reason": "Aucun soignant certifié disponible"}
+    ]
+  }
+}

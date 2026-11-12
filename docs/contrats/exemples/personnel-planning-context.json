@@ -1,0 +1,29 @@
+{
+  "etablissement_id": 3,
+  "start_date": "2026-11-16",
+  "end_date": "2026-11-16",
+  "generated_at": "2026-11-12T10:00:00Z",
+  "staff": [
+    {"id": 17, "first_name": "Awa", "last_name": "Diop", "is_active": true, "role_ids": [2]},
+    {"id": 18, "first_name": "Paul", "last_name": "Martin", "is_active": true, "role_ids": [1]}
+  ],
+  "absences": [
+    {"staff_id": 18, "start_date": "2026-11-10", "expected_end_date": "2026-11-14"}
+  ],
+  "certifications": [
+    {"staff_id": 17, "certification_id": 4, "expiration_date": "2027-03-01"},
+    {"staff_id": 18, "certification_id": 4, "expiration_date": null}
+  ],
+  "contracts": [
+    {"staff_id": 17, "start_date": "2025-01-01", "end_date": null, "night_shift_allowed": true, "max_hours_per_week": 48, "max_consecutive_nights": 3},
+    {"staff_id": 18, "start_date": "2024-06-01", "end_date": null, "night_shift_allowed": false, "max_hours_per_week": 35, "max_consecutive_nights": 0}
+  ],
+  "preferences": [
+    {"staff_id": 17, "kind": "avoids_day", "importance": 3, "is_hard_constraint": false, "description": "Pas le dimanche", "target_shift_type_id": null, "target_service_id": null, "target_day_of_week": 6, "start_date": null, "end_date": null}
+  ],
+  "service_assignments": [
+    {"staff_id": 17, "service_id": 1, "start_date": "2025-01-01", "end_date": null},
+    {"staff_id": 18, "service_id": 1, "start_date": "2024-06-01", "end_date": null}
+  ],
+  "loans": []
+}

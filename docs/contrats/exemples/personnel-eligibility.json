@@ -1,0 +1,9 @@
+{
+  "staff_id": 17,
+  "is_active": true,
+  "absent": false,
+  "absence": null,
+  "certification_ids_valid": [4, 7],
+  "contract": {"night_shift_allowed": true, "max_hours_per_week": 48},
+  "hard_preferences": [{"description": "Pas le dimanche", "target_day_of_week": 6}]
+}

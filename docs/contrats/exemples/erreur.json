@@ -1,0 +1,8 @@
+{
+  "error": {
+    "code": "RULE_ABSENCE_PRIO",
+    "message": "Ce soignant est absent du 2026-11-10 au 2026-11-14.",
+    "details": {"staff_id": 12, "shift_id": 340},
+    "correlation_id": "6f1c2e4a-0b7d-4a51-9a7e-3c1f0d2b9e11"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "iss": "hospiplan-identite",
+  "aud": "hospiplan-api",
+  "sub": "42",
+  "email": "cadre@chu-exemple.fr",
+  "etablissement_id": 3,
+  "role": "CADRE",
+  "staff_id": 17,
+  "type": "access",
+  "iat": 1762934400,
+  "exp": 1762935300,
+  "jti": "b0f6c8d2-1a2b-4c3d-8e9f-001122334455"
+}

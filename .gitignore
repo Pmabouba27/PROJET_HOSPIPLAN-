@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environnements virtuels
+myenv/
+venv/
+.venv/
+env/
+
+# Secrets — ne JAMAIS committer
+.env
+.env.*
+!.env.example
+*.PublishSettings
+*.publishsettings
+*.pem
+*.key
+local.settings.json
+
+# Node / frontend
+node_modules/
+build/
+
+# Azure Functions
+.python_packages/
+bin/
+obj/
+
+# Django
+*.log
+staticfiles/
+media/
+db.sqlite3
+
+# IDE / OS
+.idea/
+.DS_Store
+Thumbs.db
