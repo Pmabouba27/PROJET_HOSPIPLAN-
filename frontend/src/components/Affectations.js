@@ -12,7 +12,7 @@ export default function Affectations() {
   const [modal,        setModal]        = useState(false);
   const [alert,        setAlert]        = useState(null);
   const [erreur,       setErreur]       = useState(null);
-  const [form,         setForm]         = useState({ staff: '', shift: '' });
+  const [form,         setForm]         = useState({ staff_id: '', shift_id: '' });
 
   useEffect(() => { charger(); chargerSelects(); }, []);
 
@@ -31,14 +31,14 @@ export default function Affectations() {
   }
 
   function ouvrirModal() {
-    setForm({ staff: '', shift: '' });
+    setForm({ staff_id: '', shift_id: '' });
     setErreur(null);
     setModal(true);
   }
 
  async function creerAffectation() {
     // ── Validation côté client ─────────────────────────────
-    if (!form.staff || !form.shift) {
+    if (!form.staff_id || !form.shift_id) {
         setErreur('❌ Veuillez choisir un soignant et un poste de garde.');
         return;
     }
@@ -89,13 +89,13 @@ export default function Affectations() {
             {affectations.length === 0
               ? <tr><td colSpan="5" className="loading">Chargement...</td></tr>
               : affectations.map(a => {
-                const soignant = soignants.find(s => s.id === a.staff);
-                const poste    = postes.find(p => p.id === a.shift);
+                const soignant = soignants.find(s => s.id === a.staff_id);
+                const poste    = postes.find(p => p.id === a.shift_id);
                 return (
                   <tr key={a.id}>
                     <td>{a.id}</td>
-                    <td>{soignant ? `${soignant.first_name} ${soignant.last_name}` : a.staff}</td>
-                    <td>{poste ? `Poste #${poste.id} — ${new Date(poste.start_datetime).toLocaleDateString('fr-FR')}` : a.shift}</td>
+                    <td>{soignant ? `${soignant.first_name} ${soignant.last_name}` : a.staff_id}</td>
+                    <td>{poste ? `Poste #${poste.id} — ${new Date(poste.start_datetime).toLocaleDateString('fr-FR')}` : a.shift_id}</td>
                     <td>{new Date(a.assigned_at).toLocaleString('fr-FR')}</td>
                     <td>
                       <button className="btn btn-danger" onClick={() => supprimer(a.id)}>🗑️</button>
@@ -115,8 +115,8 @@ export default function Affectations() {
 
             <div className="form-group">
               <label>Soignant</label>
-              <select value={form.staff}
-                onChange={e => setForm({...form, staff: e.target.value})}>
+              <select value={form.staff_id}
+                onChange={e => setForm({...form, staff_id: e.target.value})}>
                 <option value="">-- Choisir un soignant --</option>
                 {soignants.map(s => (
                   <option key={s.id} value={s.id}>
@@ -128,8 +128,8 @@ export default function Affectations() {
 
             <div className="form-group">
               <label>Poste de garde</label>
-              <select value={form.shift}
-                onChange={e => setForm({...form, shift: e.target.value})}>
+              <select value={form.shift_id}
+                onChange={e => setForm({...form, shift_id: e.target.value})}>
                 <option value="">-- Choisir un poste --</option>
                 {postes.map(p => (
                   <option key={p.id} value={p.id}>

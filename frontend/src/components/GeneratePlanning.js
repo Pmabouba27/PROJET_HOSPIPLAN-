@@ -260,12 +260,12 @@ function DayCard({ day, fmtDay, fmtTime, data, error, staffMap, shiftMap }) {
           </thead>
           <tbody>
             {data.assignments.map((a, idx) => {
-              const sh = shiftMap[a.shift];
+              const sh = shiftMap[a.shift_id];
               return (
                 <tr key={idx}>
-                  <td>#{a.shift}{sh ? ` — ${sh.shift_type ?? ''}` : ''}</td>
+                  <td>#{a.shift_id}{sh ? ` — ${sh.shift_type ?? ''}` : ''}</td>
                   <td>{sh ? `${fmtTime(sh.start_datetime)} → ${fmtTime(sh.end_datetime)}` : '—'}</td>
-                  <td>{staffMap[a.staff] || `#${a.staff}`}</td>
+                  <td>{staffMap[a.staff_id] || `#${a.staff_id}`}</td>
                   <td>{a.legal ? '✅' : '❌'}</td>
                 </tr>
               );
@@ -287,7 +287,7 @@ function DayCard({ day, fmtDay, fmtTime, data, error, staffMap, shiftMap }) {
             <tbody>
               {data.uncovered.map((u, idx) => (
                 <tr key={idx}>
-                  <td>#{u.shift}</td>
+                  <td>#{u.shift_id}</td>
                   <td>{u.missing}</td>
                   <td>{u.reason}</td>
                 </tr>
@@ -342,13 +342,13 @@ function CalendarView({ results, staffMap, shiftMap, fmtDay, fmtTime }) {
               <div style={{ color: '#999', fontSize: '0.75rem', textAlign: 'center', marginTop: '12px' }}>—</div>
             )}
             {data && data.assignments.map((a, idx) => {
-              const sh = shiftMap[a.shift];
+              const sh = shiftMap[a.shift_id];
               return (
                 <div
                   key={idx}
-                  title={`Shift #${a.shift} | ${sh ? fmtTime(sh.start_datetime) + '→' + fmtTime(sh.end_datetime) : ''}`}
+                  title={`Shift #${a.shift_id} | ${sh ? fmtTime(sh.start_datetime) + '→' + fmtTime(sh.end_datetime) : ''}`}
                   style={{
-                    background: colorFor(a.staff),
+                    background: colorFor(a.staff_id),
                     color: '#fff',
                     borderRadius: '4px',
                     padding: '2px 5px',
@@ -359,7 +359,7 @@ function CalendarView({ results, staffMap, shiftMap, fmtDay, fmtTime }) {
                     textOverflow: 'ellipsis',
                   }}
                 >
-                  {staffMap[a.staff] || `#${a.staff}`}
+                  {staffMap[a.staff_id] || `#${a.staff_id}`}
                   {sh ? ` (${fmtTime(sh.start_datetime)})` : ''}
                 </div>
               );

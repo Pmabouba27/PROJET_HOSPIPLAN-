@@ -7,9 +7,10 @@
 
 | Étape | Contenu | Statut | Branche | Commit |
 |---|---|---|---|---|
-| 0 | Contrats d'interface et conventions Git | ✅ fait — en attente de relecture | `phase0/contrats-et-conventions` | `db9a49a` |
-| 1 | Assainissement (secrets, config, dépendances) | ✅ code fait — ⚠️ rotation du mot de passe PostgreSQL à faire | `chore/assainissement-secrets` | `0af0627` |
-| 2 | VM PostgreSQL sur Azure (IaaS) | 🟡 scripts prêts, **VM non créée** (connexion Azure requise) | `infra/vm-postgresql` | `70166c0` |
+| 0 | Contrats d'interface et conventions Git | ✅ fait, contrats validés, mergé dans `main` | `phase0/contrats-et-conventions` | `db9a49a` |
+| 1 | Assainissement (secrets, config, dépendances) | ✅ fait (mot de passe PostgreSQL local changé), mergé dans `main` | `chore/assainissement-secrets` | `0af0627` |
+| 0 bis | Application du contrat : `shift_id`/`staff_id` dans l'API et le frontend | ✅ fait, testé, mergé dans `main` | `feat/contrat-ids-affectations` | voir `git log` |
+| 2 | VM PostgreSQL sur Azure (IaaS) | 🟡 scripts prêts et mergés, **VM non créée** (`az login` requis) | `infra/vm-postgresql` | `70166c0` |
 | 3 | Authentification JWT + établissements | ⏳ à faire (A) | — | — |
 | 4 | Découpage en 3 microservices | ⏳ à faire (A + B) | — | — |
 | 5 | Azure Function + Service Bus | ⏳ à faire (B) | — | — |
@@ -117,22 +118,37 @@ Ensuite, renseigner dans `.env` : `DB_HOST=<IP>`, `DB_USER=hospiplan_app`, `DB_P
 
 ---
 
-## Actions manuelles restantes (ne peuvent pas être faites depuis ici)
+## Mise à jour du 12/11/2026 (après-midi)
+
+**Fait**
+- Les 3 branches sont mergées dans `main` (fast-forward) et poussées sur GitHub.
+- Décisions du contrat validées : identifiants `shift_id`/`staff_id`, jetons de service JWT pour les appels internes, `Service`/`CareUnit` dans planning.
+- Contrat appliqué au code (`feat/contrat-ids-affectations`) :
+  - `ShiftAssignmentSerializer` expose `id`, `shift_id`, `staff_id`, `assigned_at` ;
+  - `POST /api/assignments/` attend `shift_id`/`staff_id` ;
+  - `POST /api/plannings/generate/` renvoie `shift_id`/`staff_id` dans `assignments`, `uncovered` et `errors` ;
+  - le frontend (`Affectations.js`, `GeneratePlanning.js`) est adapté.
+- Tests effectués sur la base locale, dans une transaction annulée pour ne rien écrire :
+  - lecture, création d'affectation et génération : OK ;
+  - les anciens noms de champs sont bien refusés ;
+  - le frontend compile (`npm run build`).
+- Base locale : PostgreSQL 18 écoute sur le port **5433** sur ce poste (`DB_PORT=5433` dans `.env`). Le **mot de passe `postgres` a été changé**, l'ancien est refusé. Le nouveau est uniquement dans `.env` : le reporter dans pgAdmin/DBeaver si besoin.
+
+**Constats**
+- Aucun test automatisé dans `hospiplan/api/tests.py` (0 test).
+- Bug existant : `GET /api/staff/overview/` renvoie 404, car la route du routeur `staff/<pk>/` est déclarée avant. Correction prévue dans le travail de A (service-personnel).
+
+## Actions manuelles restantes
 
 | # | Action | Qui |
 |---|---|---|
-| 1 | Ouvrir les 3 PR sur GitHub (liens ci-dessous), les relire, puis merger dans l'ordre | A + B |
-| 2 | Protéger `main` : Settings → Branches → règle `main` → PR obligatoire, 1 approbation | propriétaire du dépôt |
-| 3 | Relire et approuver `docs/contrats/CONTRATS.md`, en tranchant les 3 décisions de l'étape 0 | A + B |
-| 4 | Changer le mot de passe PostgreSQL local et mettre à jour `.env` | chacun |
-| 5 | `az login`, puis créer la VM avec les scripts | B |
-
-Liens pour créer les PR :
-- https://github.com/Pmabouba27/PROJET_HOSPIPLAN-/pull/new/phase0/contrats-et-conventions
-- https://github.com/Pmabouba27/PROJET_HOSPIPLAN-/pull/new/chore/assainissement-secrets (base : `phase0/contrats-et-conventions`, ou `main` après le premier merge)
-- https://github.com/Pmabouba27/PROJET_HOSPIPLAN-/pull/new/infra/vm-postgresql (base : `chore/assainissement-secrets`, ou `main` après les merges)
+| 1 | Protéger `main` : GitHub → Settings → Branches → règle `main` → PR obligatoire, 1 approbation (nécessite les droits admin ; `gh` n'est pas installé ici) | propriétaire du dépôt |
+| 2 | `az login`, puis création de la VM avec `infra/vm-postgresql/deploy-vm.sh` | B |
+| 3 | Chaque membre : copier `.env.example` en `.env`, `pip install -r hospiplan/requirements.txt` | A + B |
 
 ## Prochaines étapes
+
+Le détail du travail de A est dans `TRAVAIL_A.md`.
 
 - **A — étape 3** : authentification JWT et modèle `Etablissement`, en suivant `CONTRATS.md` §3–4. Brancher ensuite le login dans le frontend.
 - **B — étape 4 côté planning** : créer `service-planning/` à partir de `hospiplan/api/planning/` et le faire tourner contre le mock `docs/contrats/exemples/personnel-planning-context.json`.

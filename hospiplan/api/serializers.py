@@ -17,9 +17,13 @@ class ShiftSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class ShiftAssignmentSerializer(serializers.ModelSerializer):
+    # Contrat v1 (docs/contrats/CONTRATS.md §6.1) : identifiants suffixés _id
+    shift_id = serializers.PrimaryKeyRelatedField(source='shift', queryset=Shift.objects.all())
+    staff_id = serializers.PrimaryKeyRelatedField(source='staff', queryset=Staff.objects.all())
+
     class Meta:
         model  = ShiftAssignment
-        fields = '__all__'
+        fields = ['id', 'shift_id', 'staff_id', 'assigned_at']
 
 class AbsenceSerializer(serializers.ModelSerializer):
     class Meta:

@@ -1,6 +1,7 @@
 # HospiPlan SaaS — Contrats d'interface (Phase 0)
 
-> **Statut : FIGÉ v1.0** — toute modification passe par une PR qui touche ce fichier, relue et approuvée par A **et** B.
+> **Statut : FIGÉ v1.0 — validé le 12/11/2026** (décisions : identifiants `*_id` entre services, `Service`/`CareUnit` dans planning, jetons de service JWT pour les appels internes).
+> Toute modification passe par une PR qui touche ce fichier, relue et approuvée par A **et** B.
 > Règle de compatibilité : on peut **ajouter** un champ optionnel sans changer de version ; **renommer / supprimer / changer le type** d'un champ = nouvelle version (`/api/v2/...` ou `version: 2` dans le message).
 
 Sommaire :
@@ -133,7 +134,6 @@ Contenu (claims) de l'access token :
 - service-planning appelle service-personnel avec un **jeton de service** : `Authorization: Bearer <JWT service>` signé par identite via `POST /internal/v1/auth/service-token` (identifiants `SERVICE_CLIENT_ID` / `SERVICE_CLIENT_SECRET` en variables d'environnement / Key Vault), claims : `{"sub": "service-planning", "type": "service", "scope": ["personnel:read"], "aud": "hospiplan-internal"}`, durée 15 min, mis en cache.
 - L'établissement concerné est passé dans l'en-tête `X-Etablissement-Id` (accepté **uniquement** avec un jeton de type `service`).
 - Un JWT utilisateur sur `/internal/...` → `403 FORBIDDEN_ROLE`.
-- *Simplification acceptée pour la démo si le temps manque* : clé partagée `X-Service-Key` (secret en variable d'env), à documenter comme faiblesse dans l'analyse de sécurité.
 
 ---
 
@@ -299,7 +299,7 @@ Réponse `200` :
 }
 ```
 
-⚠️ Renommage par rapport au monolithe : `shift` → `shift_id`, `staff` → `staff_id` (le frontend est adapté par A). `planning_id` est nouveau (UUID, sert d'`event_id` et de clé d'idempotence). Si personnel est injoignable → `503 UPSTREAM_UNAVAILABLE`, rien n'est persisté. Si la publication Service Bus échoue après retries → la réponse reste `200` avec `"event_published": false` (le planning est déjà enregistré ; l'erreur est journalisée et alertée).
+Renommage `shift` → `shift_id`, `staff` → `staff_id` : **déjà appliqué** dans le monolithe (`/api/assignments/`, `/api/plannings/generate/`) et dans le frontend (`Affectations.js`, `GeneratePlanning.js`). `planning_id` est nouveau (UUID, sert d'`event_id` et de clé d'idempotence). Si personnel est injoignable → `503 UPSTREAM_UNAVAILABLE`, rien n'est persisté. Si la publication Service Bus échoue après retries → la réponse reste `200` avec `"event_published": false` (le planning est déjà enregistré ; l'erreur est journalisée et alertée).
 
 ### 6.3 GET `/api/v1/stats`
 

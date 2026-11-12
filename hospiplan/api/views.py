@@ -144,8 +144,8 @@ class ShiftAssignmentViewSet(viewsets.ModelViewSet):
     serializer_class = ShiftAssignmentSerializer
 
     def create(self, request, *args, **kwargs):
-        staff_id = request.data.get('staff')
-        shift_id = request.data.get('shift')
+        staff_id = request.data.get('staff_id')
+        shift_id = request.data.get('shift_id')
 
         try:
             staff = Staff.objects.get(id=staff_id)
@@ -367,16 +367,27 @@ class GeneratePlanningView(APIView):
                         errors.append({'shift': a['shift'], 'staff': a['staff'],
                                        'detail': str(ve)})
 
+        # Contrat v1 : clés shift/staff exposées en shift_id/staff_id
+        def _ids(items):
+            out = []
+            for it in items:
+                it = dict(it)
+                for k in ('shift', 'staff'):
+                    if k in it:
+                        it[f'{k}_id'] = it.pop(k)
+                out.append(it)
+            return out
+
         return Response({
             'date': raw_date,
             'service_id': service_id,
-            'assignments': result['assignments'],
-            'uncovered': result['uncovered'],
+            'assignments': _ids(result['assignments']),
+            'uncovered': _ids(result['uncovered']),
             'score': result['score'],
             'summary': result['summary'],
             'metaheuristic': meta_info,
             'persisted': persisted,
-            'errors': errors,
+            'errors': _ids(errors),
         }, status=status.HTTP_200_OK)
 
 
@@ -513,4 +524,4 @@ class StatsView(APIView):
             'by_staff':   staff_list,
             'by_service': services_list,
             'by_type':    [{'type': k, 'count': v} for k, v in type_stats.items()],
-        }, status=status.HTTP_200_OK)
+        }, status=status.HTTP_200_OK)
