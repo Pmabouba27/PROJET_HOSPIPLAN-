@@ -59,17 +59,16 @@ GRANT ALL PRIVILEGES ON DATABASE hospiplan TO hospiplan_user;
 
 Vous pouvez utiliser **pgAdmin** ou **DBeaver** pour inspecter la base visuellement.
 
-Paramètres de connexion par défaut (définis dans `hospiplan/hospiplan/settings.py`) :
+Les paramètres de connexion ne sont **plus** dans le code : ils sont lus dans les variables d'environnement.
+Copiez `.env.example` en `.env` à la racine du dépôt puis renseignez `DB_USER`, `DB_PASSWORD`, `DJANGO_SECRET_KEY`… Le fichier `.env` est ignoré par Git.
 
-| Paramètre | Valeur |
+| Variable | Défaut |
 |-----------|--------|
-| Host | `localhost` |
-| Port | `5432` |
-| Database | `hospiplan` |
-| User | `postgres` |
-| Password | `enfant*2` |
-
-Pour modifier ces valeurs, éditez le bloc `DATABASES` dans `hospiplan/hospiplan/settings.py`.
+| `DB_HOST` | `localhost` |
+| `DB_PORT` | `5432` |
+| `DB_NAME` | `hospiplan` |
+| `DB_USER` | *(obligatoire)* |
+| `DB_PASSWORD` | *(obligatoire)* |
 
 ### 3. Backend Django
 

@@ -1,5 +1,6 @@
 # Dockerfile Django
-FROM python:3.11-slim
+# Django 6 requiert Python >= 3.12
+FROM python:3.12-slim
 
 WORKDIR /app
 
@@ -10,4 +11,5 @@ COPY . .
 
 EXPOSE 8000
 
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# Production : gunicorn (docker-compose surcharge avec runserver pour le dev)
+CMD ["gunicorn", "hospiplan.wsgi", "--bind=0.0.0.0:8000", "--workers=2"]

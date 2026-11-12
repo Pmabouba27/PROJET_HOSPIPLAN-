@@ -140,7 +140,7 @@ Une fois les contrats figés, chacun avance en parallèle (en local via `docker-
 ### Tâches
 | Domaine | **A — Produit & Applicatif** | **B — Cloud & Plateforme** |
 |---|---|---|
-| Assainissement | [ ] `settings.py` en variables d'env, `.env.example`, `requirements.txt` | [ ] Rotation des secrets, nettoyage README / `docker-compose.yml` |
+| Assainissement | [x] `settings.py` en variables d'env, `.env.example`, `requirements.txt` | [ ] Rotation des secrets (mot de passe PostgreSQL à changer) · [x] nettoyage README / `docker-compose.yml` |
 | Code | [ ] **service-identite** (JWT, établissements, rôles) | [ ] **service-planning** (extraction de `planning/`, affectations, postes) |
 | | [ ] **service-personnel** (soignants, contrats, absences, préférences) | [ ] **Azure Function** + Service Bus (stats / rapport / notification) |
 | | [ ] **Frontend** : écran de login, rôles, appels vers les nouveaux services | [ ] Publication de l'événement dans service-planning (avec retry) |

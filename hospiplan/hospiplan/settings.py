@@ -1,12 +1,38 @@
+import os
 from pathlib import Path
+
+from django.core.exceptions import ImproperlyConfigured
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-p1%idw96(m!&eko2fboli&976-8ssam2&i7ur8@p19y1k1@ori'
+# Variables lues dans l'environnement (Azure : Paramètres d'application).
+# En local : fichier .env à la racine du dépôt ou dans hospiplan/ (voir .env.example).
+load_dotenv(BASE_DIR.parent / '.env')
+load_dotenv(BASE_DIR / '.env')
 
-DEBUG = True
 
-ALLOWED_HOSTS = []
+def env(name, default=None, required=False):
+    value = os.environ.get(name, default)
+    if required and not value:
+        raise ImproperlyConfigured(f"Variable d'environnement manquante : {name}")
+    return value
+
+
+def env_bool(name, default=False):
+    return str(os.environ.get(name, default)).strip().lower() in ('1', 'true', 'yes', 'on')
+
+
+def env_list(name, default=''):
+    return [v.strip() for v in os.environ.get(name, default).split(',') if v.strip()]
+
+
+SECRET_KEY = env('DJANGO_SECRET_KEY', required=True)
+
+DEBUG = env_bool('DJANGO_DEBUG', False)
+
+ALLOWED_HOSTS = env_list('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1')
+CSRF_TRUSTED_ORIGINS = env_list('DJANGO_CSRF_TRUSTED_ORIGINS')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -53,11 +79,12 @@ WSGI_APPLICATION = 'hospiplan.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'hospiplan',
-        'USER': 'postgres',
-        'PASSWORD': 'enfant*2',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'NAME': env('DB_NAME', 'hospiplan'),
+        'USER': env('DB_USER', required=True),
+        'PASSWORD': env('DB_PASSWORD', required=True),
+        'HOST': env('DB_HOST', 'localhost'),
+        'PORT': env('DB_PORT', '5432'),
+        'OPTIONS': {'sslmode': env('DB_SSLMODE', 'prefer')},
     }
 }
 
@@ -74,9 +101,17 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-]
+CORS_ALLOWED_ORIGINS = env_list('CORS_ALLOWED_ORIGINS', 'http://localhost:3000')
+
+# Derrière le proxy HTTPS d'Azure App Service
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = env_bool('DJANGO_SECURE_SSL_REDIRECT', True)
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = int(env('DJANGO_HSTS_SECONDS', '3600'))
+    SECURE_CONTENT_TYPE_NOSNIFF = True
