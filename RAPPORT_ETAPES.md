@@ -148,7 +148,7 @@ Ensuite, renseigner dans `.env` : `DB_HOST=<IP>`, `DB_USER=hospiplan_app`, `DB_P
 
 ## Prochaines étapes
 
-Le détail du travail de A est dans `TRAVAIL_A.md`.
+Le détail du travail de A est dans `TRAVAIL_A.md`, celui de B dans `TRAVAIL_B.md`.
 
 - **A — étape 3** : authentification JWT et modèle `Etablissement`, en suivant `CONTRATS.md` §3–4. Brancher ensuite le login dans le frontend.
 - **B — étape 4 côté planning** : créer `service-planning/` à partir de `hospiplan/api/planning/` et le faire tourner contre le mock `docs/contrats/exemples/personnel-planning-context.json`.
