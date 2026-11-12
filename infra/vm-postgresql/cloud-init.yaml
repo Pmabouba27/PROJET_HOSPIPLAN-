@@ -1,0 +1,40 @@
+#cloud-config
+# Installé au premier démarrage de la VM. Ne contient AUCUN secret
+# (le custom-data est lisible depuis le portail Azure).
+package_update: true
+package_upgrade: true
+packages:
+  - postgresql
+  - postgresql-contrib
+  - ufw
+  - fail2ban
+  - unattended-upgrades
+
+write_files:
+  # Sauvegarde logique quotidienne, conservée 7 jours
+  - path: /etc/cron.d/hospiplan-backup
+    permissions: '0644'
+    content: |
+      30 2 * * * postgres /usr/local/bin/hospiplan-backup.sh >> /var/log/hospiplan-backup.log 2>&1
+  - path: /usr/local/bin/hospiplan-backup.sh
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      set -euo pipefail
+      DIR=/var/backups/postgresql
+      mkdir -p "$DIR"
+      pg_dump -Fc hospiplan > "$DIR/hospiplan_$(date +%F).dump"
+      find "$DIR" -name '*.dump' -mtime +7 -delete
+
+runcmd:
+  # Pare-feu local en plus du NSG Azure (défense en profondeur)
+  - ufw default deny incoming
+  - ufw allow 22/tcp
+  - ufw allow 5432/tcp
+  - ufw --force enable
+  - systemctl enable --now fail2ban
+  # SSH : désactiver l'authentification par mot de passe et root
+  - sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
+  - sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
+  - systemctl restart ssh
+  - mkdir -p /var/backups/postgresql && chown postgres:postgres /var/backups/postgresql
