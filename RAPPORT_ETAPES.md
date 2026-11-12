@@ -11,7 +11,7 @@
 | 1 | Assainissement (secrets, config, dépendances) | ✅ fait (mot de passe PostgreSQL local changé), mergé dans `main` | `chore/assainissement-secrets` | `0af0627` |
 | 0 bis | Application du contrat : `shift_id`/`staff_id` dans l'API et le frontend | ✅ fait, testé, mergé dans `main` | `feat/contrat-ids-affectations` | voir `git log` |
 | 2 | VM PostgreSQL sur Azure (IaaS) | 🟡 scripts prêts et mergés, **VM non créée** (`az login` requis) | `infra/vm-postgresql` | `70166c0` |
-| 3 | Authentification JWT + établissements | ⏳ à faire (A) | — | — |
+| 3 | Authentification JWT + établissements (A1) | ✅ service-identite + `libs/hospiplan_auth`, 38 tests OK | `feat/identite-jwt` | voir `git log` |
 | 4 | Découpage en 3 microservices | ⏳ à faire (A + B) | — | — |
 | 5 | Azure Function + Service Bus | ⏳ à faire (B) | — | — |
 | 6 | CI/CD, supervision, FinOps, livrables | ⏳ à faire | — | — |
@@ -145,6 +145,33 @@ Ensuite, renseigner dans `.env` : `DB_HOST=<IP>`, `DB_USER=hospiplan_app`, `DB_P
 | 1 | Protéger `main` : GitHub → Settings → Branches → règle `main` → PR obligatoire, 1 approbation (nécessite les droits admin ; `gh` n'est pas installé ici) | propriétaire du dépôt |
 | 2 | `az login`, puis création de la VM avec `infra/vm-postgresql/deploy-vm.sh` | B |
 | 3 | Chaque membre : copier `.env.example` en `.env`, `pip install -r hospiplan/requirements.txt` | A + B |
+
+## Étape 3 / A1 — service-identite (12/11/2026)
+
+**Réalisé**
+- `libs/hospiplan_auth/` : bibliothèque commune à tous les services.
+  - vérification du JWT RS256 sans base de données ;
+  - permissions par rôle et jetons de service ;
+  - isolation par établissement (`TenantQuerysetMixin`) ;
+  - format d'erreur commun, `X-Correlation-ID` et journal des accès ;
+  - pagination, `/health`, un schéma PostgreSQL par service.
+- `service-identite/` (port 8001, schéma `identite`) :
+  - modèles `Etablissement` (plan, statut d'abonnement) et `Utilisateur` (connexion par email, rôle, `staff_id`) ;
+  - login limité à 5 essais / min, refresh avec rotation et révocation, logout, `me`, JWKS ;
+  - CRUD établissements (SUPERADMIN) et utilisateurs (ADMIN limité à son établissement) ;
+  - jetons de service `client_credentials` ;
+  - commandes `generate_jwt_keys` et `seed_identite` ;
+  - Dockerfile non-root, `.env.example` et README.
+- Contrat complété : codes `INVALID_CREDENTIALS` et `ETABLISSEMENT_SUSPENDU`, `etablissement_id` null pour SUPERADMIN.
+
+**Vérifications**
+- 38 tests automatisés OK : claims du JWT, jeton falsifié ou expiré, refresh réutilisé, rôles, isolation entre établissements, doublon d'email (409), mot de passe faible, limitation de débit, jetons de service, JWKS, correlation ID.
+- Serveur lancé sur la base locale : `/health`, login du cadre de démo, `me`, refus 403 au format commun avec correlation ID, jeton de service et JWKS : OK.
+- Base locale : schéma `identite` créé (11 tables) et données de démo chargées. Le schéma `public` du monolithe n'a pas été modifié.
+
+**Bug corrigé en cours de route** : le validateur DRF généré par la contrainte d'unicité (établissement, staff_id) rendait `etablissement_id` obligatoire, ce qui empêchait un ADMIN de créer un compte. Un test couvre maintenant ce cas.
+
+**À transmettre à B (canal privé)** : `service-identite/keys/jwt_public.pem` et le secret `service-planning` de `SERVICE_CLIENTS` (dans `service-identite/.env`). Les mots de passe des comptes de démo sont dans `SEED_PASSWORD` du même fichier.
 
 ## Prochaines étapes
 

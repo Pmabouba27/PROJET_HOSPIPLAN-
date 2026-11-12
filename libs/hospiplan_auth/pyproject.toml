@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hospiplan-auth"
+version = "1.0.0"
+description = "Authentification JWT, rôles, multi-établissement et format d'erreur communs aux microservices HospiPlan"
+requires-python = ">=3.12"
+dependencies = [
+  "Django>=6.0",
+  "djangorestframework>=3.15",
+  "PyJWT[crypto]>=2.10",
+]
+
+[tool.setuptools]
+packages = ["hospiplan_auth"]

@@ -1,0 +1,10 @@
+Django==6.0.3
+djangorestframework==3.17.1
+djangorestframework-simplejwt==5.5.1
+PyJWT[crypto]==2.10.1
+django-cors-headers==4.9.0
+psycopg2-binary==2.9.11
+python-dotenv==1.1.1
+gunicorn==23.0.0
+# Bibliothèque commune : en local `pip install -e ../libs/hospiplan_auth` ;
+# pour Azure, le workflow copie libs/hospiplan_auth/hospiplan_auth/ dans ce dossier.

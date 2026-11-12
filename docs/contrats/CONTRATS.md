@@ -73,8 +73,8 @@ Champs qui deviennent des identifiants « externes » (plus de clé étrangère)
 | HTTP | `code` (exemples) | Quand |
 |---|---|---|
 | 400 | `VALIDATION_ERROR`, `RULE_*` (règles métier existantes : `RULE_NO_OVERLAP`, `RULE_ABSENCE_PRIO`, `RULE_CERTIFICATION`, `RULE_CONTRACT_ELIG`, `RULE_WEEKLY_QUOTA`, `RULE_HARD_PREFERENCE`, `RULE_MIN_STAFF`, `RULE_STAFF_INACTIVE`) | données invalides / règle dure violée |
-| 401 | `AUTH_REQUIRED`, `TOKEN_EXPIRED`, `TOKEN_INVALID` | JWT absent ou invalide |
-| 403 | `FORBIDDEN_ROLE`, `FORBIDDEN_TENANT` | rôle insuffisant / ressource d'un autre établissement |
+| 401 | `AUTH_REQUIRED`, `TOKEN_EXPIRED`, `TOKEN_INVALID`, `INVALID_CREDENTIALS` | JWT absent ou invalide ; email/mot de passe ou identifiants de service incorrects |
+| 403 | `FORBIDDEN_ROLE`, `FORBIDDEN_TENANT`, `ETABLISSEMENT_SUSPENDU` | rôle insuffisant / jeton sans établissement / abonnement suspendu ou résilié (au login et au refresh) |
 | 404 | `NOT_FOUND` | ressource inexistante **dans l'établissement** (on ne révèle pas qu'elle existe ailleurs) |
 | 409 | `CONFLICT` | doublon (email, affectation existante) |
 | 429 | `RATE_LIMITED` | trop de tentatives de login |
@@ -112,7 +112,7 @@ Contenu (claims) de l'access token :
 | Claim | Type | Sens |
 |---|---|---|
 | `sub` | string | id de l'`Utilisateur` dans identite |
-| `etablissement_id` | int | établissement client (tenant) — **seule** source du filtrage multi-établissement |
+| `etablissement_id` | int \| null | établissement client (tenant) — **seule** source du filtrage multi-établissement ; `null` uniquement pour `SUPERADMIN` (éditeur SaaS, voit tous les établissements) |
 | `role` | enum | `SUPERADMIN`, `ADMIN`, `CADRE`, `SOIGNANT` |
 | `staff_id` | int \| null | fiche soignant liée (obligatoire si `role = SOIGNANT`) |
 

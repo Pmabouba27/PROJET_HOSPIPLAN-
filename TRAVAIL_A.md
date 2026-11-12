@@ -19,7 +19,7 @@ cd hospiplan && python manage.py check && python manage.py runserver
 
 | # | Tâche | Branche | Durée | Dépend de | Débloque |
 |---|---|---|---|---|---|
-| A1 | service-identite : comptes, établissements, JWT | `feat/identite-jwt` | 1 j | — | A2, A3, B (vérif. JWT dans planning) |
+| A1 | ✅ service-identite : comptes, établissements, JWT | `feat/identite-jwt` | 1 j | — | A2, A3, B (vérif. JWT dans planning) |
 | A2 | service-personnel : extraction + API interne | `feat/personnel-service` | 1,5 j | A1 (vérif. JWT) | **B** (remplace le mock planning-context) |
 | A3 | Frontend : login, rôles, nouveaux services | `feat/frontend-auth` | 1 j | A1, A2 | démo |
 | A4 | Déploiement App Service identite + personnel | `infra/appservice-identite-personnel` | ½ j | A1, A2, VM de B | démo |
@@ -29,31 +29,33 @@ cd hospiplan && python manage.py check && python manage.py runserver
 
 ---
 
-## A1 — service-identite (`service-identite/`)
+## A1 — service-identite (`service-identite/`) — ✅ fait
+
+> Détail, endpoints et procédure : `service-identite/README.md` · bibliothèque commune : `libs/hospiplan_auth/README.md` · 38 tests OK.
 
 Contrat : `CONTRATS.md` §3 et §4.
 
-- [ ] Projet Django `service-identite/` avec son propre `requirements.txt`, `Dockerfile`, `.env.example` et `README.md` ; port local **8001** ; schéma PostgreSQL `identite`.
-- [ ] Modèles :
+- [x] Projet Django `service-identite/` avec son propre `requirements.txt`, `Dockerfile`, `.env.example` et `README.md` ; port local **8001** ; schéma PostgreSQL `identite`.
+- [x] Modèles :
   - `Etablissement` : `nom`, `siret`, `ville`, `plan` (`ESSAI`/`STANDARD`/`PREMIUM`), `statut_abonnement`, `max_soignants`, `created_at` ;
   - `Utilisateur` : modèle custom `AbstractUser` avec login par email, `role` (`SUPERADMIN`/`ADMIN`/`CADRE`/`SOIGNANT`), `etablissement` (FK), `staff_id` (int, nullable).
   - À créer **avant** la première migration, car le modèle utilisateur custom ne se change pas après.
-- [ ] JWT avec `djangorestframework-simplejwt` :
+- [x] JWT avec `djangorestframework-simplejwt` :
   - signature RS256 (`SIGNING_KEY` = clé privée et `VERIFYING_KEY` = clé publique, lues en variables d'env) ;
   - access 15 min, refresh 7 j, rotation des refresh et blacklist ;
   - claims personnalisés `etablissement_id`, `role`, `staff_id`, `email`, `iss`, `aud`, `type` ;
   - générer la paire de clés : `openssl genpkey -algorithm RSA -out private.pem -pkeyopt rsa_keygen_bits:2048` puis `openssl rsa -in private.pem -pubout -out public.pem`. Ces fichiers **ne doivent jamais être commités** (`*.pem` est déjà dans `.gitignore`).
-- [ ] Endpoints : `auth/login`, `auth/refresh`, `auth/logout`, `auth/me`, `auth/jwks`, `etablissements`, `users`, `/health`.
-- [ ] Limitation du login à 5 essais / min / IP (throttling DRF) → code `429 RATE_LIMITED`.
-- [ ] Jetons de service : `POST /internal/v1/auth/service-token`. Les clients autorisés (`service-planning`, `fn-planning-events`) et leurs secrets sont lus en variables d'env (`SERVICE_CLIENTS`). Le jeton porte `type: "service"`, `scope` et `aud: "hospiplan-internal"`.
-- [ ] **Paquet partagé** `libs/hospiplan_auth/`, à copier ou installer dans chaque service et à réutiliser par B dans planning :
+- [x] Endpoints : `auth/login`, `auth/refresh`, `auth/logout`, `auth/me`, `auth/jwks`, `etablissements`, `users`, `/health`.
+- [x] Limitation du login à 5 essais / min / IP (throttling DRF) → code `429 RATE_LIMITED`.
+- [x] Jetons de service : `POST /internal/v1/auth/service-token`. Les clients autorisés (`service-planning`, `fn-planning-events`) et leurs secrets sont lus en variables d'env (`SERVICE_CLIENTS`). Le jeton porte `type: "service"`, `scope` et `aud: "hospiplan-internal"`.
+- [x] **Paquet partagé** `libs/hospiplan_auth/`, à copier ou installer dans chaque service et à réutiliser par B dans planning :
   - une classe d'authentification DRF qui vérifie le JWT avec la clé publique ;
   - des permissions `IsRole(...)`, `IsServiceToken(scope)` ;
   - un mixin `TenantQuerysetMixin`, qui filtre les requêtes par `request.user.etablissement_id` ;
   - un gestionnaire d'exceptions au format d'erreur commun (§2) ;
   - un middleware `X-Correlation-ID`.
-- [ ] Commande `seed_identite` : un établissement de démo, et un utilisateur par rôle (mots de passe lus dans l'environnement, pas en dur).
-- [ ] Tests :
+- [x] Commande `seed_identite` : un établissement de démo, et un utilisateur par rôle (mots de passe lus dans l'environnement, pas en dur).
+- [x] Tests :
   - login OK / KO ;
   - claims présents dans le jeton ;
   - jeton expiré → 401 ;
