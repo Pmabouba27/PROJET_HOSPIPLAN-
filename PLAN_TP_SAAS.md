@@ -160,3 +160,65 @@ Une fois les contrats figés, chacun avance en parallèle (en local via `docker-
 ### Avant la soutenance
 - [ ] Session croisée d'1 h : A explique le découpage et la sécurité applicative, B explique la VM, la Function et les coûts. Les deux doivent pouvoir répondre aux 10 questions.
 - [ ] Préparer le plan B de la démo (captures / vidéo).
+
+---
+
+## 6. Dernière étape — Déploiement CI/CD via profil de publication (compte Azure partagé)
+
+> Le compte Azure étant partagé avec la classe, on ne connecte **pas** Azure à GitHub (Deployment Center). On utilise le **profil de publication** de chaque application, stocké comme **secret GitHub**, et un workflow GitHub Actions pousse le code vers Azure.
+> ⚠️ Le fichier `.PublishSettings` contient un identifiant/mot de passe (`userName` / `userPWD`) : il ne doit **jamais** être commité dans le dépôt.
+
+### 6.1 Récupérer les profils (portail Azure — responsable : B)
+Pour **chaque** application : `service-identite`, `service-personnel`, `service-planning` (App Service) et la Function App `fn-planning-events`.
+- [ ] App Service → **Configuration** → **Paramètres généraux** → activer **SCM Basic Auth Publishing Credentials** → Enregistrer (désactivé par défaut, sinon le profil ne fonctionne pas).
+- [ ] **Vue d'ensemble** → **Télécharger le profil de publication** → enregistrer le fichier **hors du dépôt** (ex. `~/azure-profiles/`).
+- La VM PostgreSQL (IaaS) n'est pas concernée.
+
+### 6.2 Créer les secrets GitHub (admin du dépôt)
+GitHub → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**, en collant le **contenu complet** du fichier :
+
+| Secret | Application |
+|---|---|
+| `AZURE_PUBLISH_PROFILE_IDENTITE` | App Service service-identite |
+| `AZURE_PUBLISH_PROFILE_PERSONNEL` | App Service service-personnel |
+| `AZURE_PUBLISH_PROFILE_PLANNING` | App Service service-planning |
+| `AZURE_PUBLISH_PROFILE_FUNCTION` | Function App fn-planning-events |
+
+### 6.3 Workflows GitHub Actions (un par service, `.github/workflows/`)
+Déclenchés sur `push` vers `main` uniquement si le dossier du service change :
+
+```yaml
+name: Deploy service-planning
+on:
+  push:
+    branches: [main]
+    paths: ['service-planning/**']
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install -r service-planning/requirements.txt
+      - uses: azure/webapps-deploy@v3
+        with:
+          app-name: <nom-app-service-planning>
+          publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE_PLANNING }}
+          package: service-planning
+```
+- [ ] `deploy-identite.yml`, `deploy-personnel.yml`, `deploy-planning.yml` (même modèle, `azure/webapps-deploy@v3`).
+- [ ] `deploy-function.yml` avec `Azure/functions-action@v1` et `publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE_FUNCTION }}`.
+- [ ] Commande de démarrage App Service (Django) : `gunicorn <projet>.wsgi --bind=0.0.0.0`.
+- En attendant le découpage, un premier workflow peut déployer le monolithe actuel (`hospiplan/`).
+
+### 6.4 Sécurité
+- [ ] `.gitignore` : `*.PublishSettings`, `*.publishsettings`, `.env`.
+- [ ] Les variables d'environnement (`SECRET_KEY`, identifiants PostgreSQL, Service Bus…) sont saisies dans **Configuration → Paramètres d'application** de chaque App Service, jamais dans le code ni dans le profil.
+- [ ] Compte partagé : n'importe quel élève peut télécharger le profil → en cas de doute et **après la soutenance**, **Réinitialiser le profil de publication** et mettre à jour le secret GitHub.
+
+### 6.5 Vérification post-déploiement
+- [ ] Onglet **Actions** de GitHub : workflow vert.
+- [ ] Appel HTTPS des endpoints de chaque service (`https://<app>.azurewebsites.net/...`).
+- [ ] Logs : App Service → **Flux de journaux** / Application Insights.
+- [ ] Captures d'écran pour le livrable « GitHub et CI/CD » et le plan B de la démo.
